@@ -1,0 +1,38 @@
+{
+  "cli_address": "localhost:8080",
+  "self_number": "+380123456789",
+  "logs_receiver_number": "+380999999999",
+  "ignore_older_messages": 240000,
+  "is_sending_enabled": true,
+  "is_print_messages": true,
+  "forwarding": [
+    {
+      "group_id": "Z3JvdXAwX2dyb3VwMF9ncm91cDBfZ3JvdXAwX19fXw==",
+      "is_enabled": false,
+      "forwarding_mode": "attachments",
+      "receivers_group_ids": [
+        "VHA3azVUbkJYOGxJenMyN2llTXBjTHBIbVhLakdseA==",
+        "dXlQNWNLcDBPYUh4bm4wVHFxTE5PZkdaWVlxTmdMOQ=="
+      ],
+      "bot_special_addon_msg": " ",
+      "reaction_mark": "➕"
+    },
+    {
+      "group_id": "RHVPMTVNVUxXdTI2a3MzenhXb1NZVzNFcEZ0YU9ERg==",
+      "is_enabled": true,
+      "forwarding_mode": "messages",
+      "receivers_group_ids": [
+        "b3pwUGtPNDE4a2RZREhNSTZ5OXQxYnJkT01nOHFoSw=="
+      ],
+      "sender_uuids": [
+        "7758825a-09bd-4217-a4a6-fcea0212dfd2"
+      ],
+      "starts_with": [
+        "\uD83D\uDFE2 GOOD BYE ",
+        "\uD83D\uDD34Hello",
+        "\uD83D\uDD34 HELLO",
+        "\uD83D\uDD34HELLO"
+      ]
+    }
+  ]
+}
