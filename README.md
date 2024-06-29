@@ -15,6 +15,7 @@ File config.json should be located inside the source root directory to be export
 `ignore_older_messages` -- time in ms, older messages, than that, will be ignored (it is for a reason, when messages syncs after service started)  
 `is_sending_enabled` -- disables/enables real messages send. It should be false on first service start  
 `is_print_messages` -- to enable/disable messages printing to a log  
+`enable_debug_messages` -- to enable/disable debug messages printing to a log (which and why ignored, etc.)  
 `forwarding` -- array of forwarding groups:   
  >`group_id` -- which group to process messages from  
  >`is_enabled` -- this flag is for disable/enable processing this particular forwarding group  
@@ -25,6 +26,7 @@ File config.json should be located inside the source root directory to be export
  >`sender_names` -- forward messages only from given senders names (not recommend to use)
  >`sender_uuids` -- forward messages only from given senders uuids (recommended to use)
  >`starts_with` -- forward messages only that starts with given string
+ >`contains` -- forward messages only that contains given string
 
 ### Config example:
 ```json
@@ -35,6 +37,7 @@ File config.json should be located inside the source root directory to be export
   "ignore_older_messages": 240000,
   "is_sending_enabled": true,
   "is_print_messages": true,
+  "enable_debug_messages": false,
   "forwarding": [
     {
       "group_id": "Z3JvdXAwX2dyb3VwMF9ncm91cDBfZ3JvdXAwX19fXw==",
@@ -62,6 +65,9 @@ File config.json should be located inside the source root directory to be export
         "\uD83D\uDD34Hello",
         "\uD83D\uDD34 HELLO",
         "\uD83D\uDD34HELLO"
+      ],
+      "contains": [
+       "sun"
       ]
     }
   ]

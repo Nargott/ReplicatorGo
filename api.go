@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
-	"log"
 	"net/http"
 )
 
@@ -36,7 +35,7 @@ func (api *API) HomeHandler(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write([]byte("Signal Bot\n"))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		log.Printf("HomeHandler Write Error: %v", err)
+		Rlog.Error("HomeHandler Write Error: %v", err)
 	}
 }
 
@@ -52,7 +51,7 @@ func (api *API) HealthHandler(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write(resp)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		log.Printf("HealthHandler Write Error: %v", err)
+		Rlog.Error("HealthHandler Write Error: %v", err)
 	}
 }
 
@@ -61,7 +60,7 @@ func (api *API) GroupsHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusInternalServerError)
-		log.Printf("GroupsHandler GetGroupsList Error: %v", err)
+		Rlog.Errorf("GroupsHandler GetGroupsList Error: %v", err)
 		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
@@ -79,12 +78,12 @@ func (api *API) GroupsHandler(w http.ResponseWriter, r *http.Request) {
 	resp, err := json.Marshal(groupsResponse)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		log.Printf("GroupsHandler json.Marshal Error: %v", err)
+		Rlog.Errorf("GroupsHandler json.Marshal Error: %v", err)
 	}
 
 	_, err = w.Write(resp)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		log.Printf("GroupsHandler Write Error: %v", err)
+		Rlog.Errorf("GroupsHandler Write Error: %v", err)
 	}
 }

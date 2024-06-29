@@ -21,6 +21,7 @@ type (
 		SenderNames        []string       `json:"sender_names,omitempty"`
 		SenderUUIDs        []string       `json:"sender_uuids,omitempty"`
 		StartsWith         []string       `json:"starts_with,omitempty"` //to filter messages, that starts with given patterns
+		Contains           []string       `json:"contains,omitempty"`    //to filter messages, that contains given patterns
 	}
 	Config struct {
 		CLIAddress          string        `json:"cli_address"`
@@ -28,6 +29,7 @@ type (
 		IgnoreOlderMessages uint64        `json:"ignore_older_messages"`
 		IsSendingEnabled    bool          `json:"is_sending_enabled"`
 		IsPrintMessages     bool          `json:"is_print_messages"`
+		EnableDebugMessages bool          `json:"enable_debug_messages"`
 		Forwarding          []ConfigGroup `json:"forwarding"`
 	}
 )

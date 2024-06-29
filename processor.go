@@ -22,27 +22,29 @@ func initWebsocketClient(conf *Config) error {
 		return errors.New("config is nil")
 	}
 
-	log.Println("Starting Client")
+	Rlog.SetDebugEnabled(conf.EnableDebugMessages)
+
+	Rlog.Info("Starting Client")
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
 	u := url.URL{Scheme: "ws", Host: conf.CLIAddress, Path: fmt.Sprintf("/v1/receive/%s", conf.SelfNumber)}
-	log.Printf("connecting to %s", u.String())
+	Rlog.Infof("connecting to %s", u.String())
 
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		log.Fatal("dial:", err)
+		Rlog.Fatal("dial:", err)
 		return err
 	}
 	defer func(c *websocket.Conn) {
 		err := c.Close()
 		if err != nil {
-			log.Fatal("close:", err)
+			Rlog.Fatal("close:", err)
 		}
 	}(c)
 
-	log.Printf("ws connected %s", u.String())
+	Rlog.Infof("ws connected %s", u.String())
 
 	done := make(chan struct{})
 
@@ -51,7 +53,7 @@ func initWebsocketClient(conf *Config) error {
 		for {
 			_, message, err := c.ReadMessage()
 			if err != nil {
-				log.Println("read error: ", err)
+				Rlog.Error("read error: ", err)
 				continue
 			}
 
@@ -59,18 +61,18 @@ func initWebsocketClient(conf *Config) error {
 
 			err = json.Unmarshal(message, &msg)
 			if err != nil {
-				log.Println("decode error: ", err.Error())
+				Rlog.Error("decode error: ", err.Error())
 				continue
 			}
 
 			now := uint64(time.Now().UTC().UnixMilli())
 			if (now - msg.Envelope.Timestamp) > conf.IgnoreOlderMessages {
-				log.Printf("Now is %d, but message is from %d; diff is %d (>%d)", now, msg.Envelope.Timestamp, now-msg.Envelope.Timestamp, conf.IgnoreOlderMessages)
+				Rlog.Debugf("Now is %d, but message is from %d; diff is %d (>%d)", now, msg.Envelope.Timestamp, now-msg.Envelope.Timestamp, conf.IgnoreOlderMessages)
 				continue //this is sync message, will be ignored
 			}
 
 			if conf.IsPrintMessages && (len(msg.Envelope.DataMessage.Message) > 0 || len(msg.Envelope.DataMessage.Attachments) > 0) {
-				log.Printf("Message: %s, Author: %s, Author UUID: %s, Attachments: %d, Group: %s",
+				Rlog.Infof("Message: %s, Author: %s, Author UUID: %s, Attachments: %d, Group: %s",
 					msg.Envelope.DataMessage.Message,
 					msg.Envelope.Source,
 					msg.Envelope.SourceUuid,
@@ -81,96 +83,128 @@ func initWebsocketClient(conf *Config) error {
 
 			rec, err := GetForwardingRecord(conf, msg.Envelope.DataMessage.GroupInfo.GroupId)
 			if err != nil {
-				log.Println("GetForwardingRecord:", err)
+				Rlog.Error("GetForwardingRecord:", err)
 				continue
 			}
 			if rec == nil {
-				log.Printf("GroupId %s is not found in forwarding list, ignoring", msg.Envelope.DataMessage.GroupInfo.GroupId)
+				Rlog.Debugf("GroupId %s is not found in forwarding list, ignoring", msg.Envelope.DataMessage.GroupInfo.GroupId)
 				continue
 			}
 
-			log.Printf("recv: %s", message)
+			Rlog.Debugf("recv: %s", message)
 
 			switch rec.ForwardingMode {
 			case FwModeAttachments:
 				if len(msg.Envelope.DataMessage.Attachments) > 0 {
 					if !conf.IsSendingEnabled {
-						log.Println("sending messages disabled")
+						Rlog.Debug("sending messages disabled")
 						continue
 					}
 
 					m, err := CheckFilters(conf, rec, &msg.Envelope, false)
 					if err != nil {
-						log.Println("check filters error:", err)
+						Rlog.Error("check filters error:", err)
 						continue
 					}
 
 					if len(m) == 0 {
-						log.Println("filtered message, ignoring...")
+						Rlog.Debugf("filtered message, ignoring...")
 						continue
 					}
 
 					err = SendMessage(conf, rec.ReceiversGroupIds, msg.Envelope.DataMessage.Attachments, rec.BotSpecialAddonMsg)
 					if err != nil {
-						log.Println("send message error:", err)
+						Rlog.Error("send message error:", err)
 					}
 
 					err = MarkMessageAsRead(conf, msg.Envelope.Source, msg.Envelope.Timestamp) //TODO: this doesn't has any effect (
 					if err != nil {
-						log.Println("mark message as read error:", err)
+						Rlog.Error("mark message as read error:", err)
 					}
 
 					err = SendMessageReaction(conf, rec.ReactionMark, msg.Envelope.Source, msg.Envelope.Source, msg.Envelope.Timestamp)
 					if err != nil {
-						log.Println("send message reaction error:", err)
+						Rlog.Error("send message reaction error:", err)
 					}
 				} else {
-					log.Println("message has no attachments")
+					Rlog.Debug("message has no attachments")
 					continue
 				}
 				break
 			case FwModeMessages:
 				if len(msg.Envelope.DataMessage.Message) > 0 && len(msg.Envelope.DataMessage.Attachments) == 0 {
 					if !conf.IsSendingEnabled {
-						log.Println("sending messages disabled")
+						Rlog.Info("sending messages disabled")
 						continue
 					}
 
 					m, err := CheckFilters(conf, rec, &msg.Envelope, true)
 					if err != nil {
-						log.Println("check filters error:", err)
+						Rlog.Error("check filters error:", err)
 						continue
 					}
 
 					err = SendMessage(conf, rec.ReceiversGroupIds, make([]SignalAttachments, 0), m)
 					if err != nil {
-						log.Println("send message error:", err)
+						Rlog.Error("send message error:", err)
 					}
 
 					err = MarkMessageAsRead(conf, msg.Envelope.Source, msg.Envelope.Timestamp) //TODO: this doesn't has any effect (
 					if err != nil {
-						log.Println("mark message as read error:", err)
+						Rlog.Error("mark message as read error:", err)
 					}
 
 					err = SendMessageReaction(conf, rec.ReactionMark, msg.Envelope.Source, msg.Envelope.Source, msg.Envelope.Timestamp)
 					if err != nil {
-						log.Println("send message reaction error:", err)
+						Rlog.Error("send message reaction error:", err)
 					}
 				}
+				break
+			case FwModeAll:
+				if !conf.IsSendingEnabled {
+					Rlog.Debug("sending messages disabled")
+					continue
+				}
+
+				m, err := CheckFilters(conf, rec, &msg.Envelope, false)
+				if err != nil {
+					Rlog.Error("check filters error:", err)
+					continue
+				}
+
+				if len(m) == 0 {
+					Rlog.Debugf("filtered message, ignoring...")
+					continue
+				}
+
+				err = SendMessage(conf, rec.ReceiversGroupIds, msg.Envelope.DataMessage.Attachments, m)
+				if err != nil {
+					Rlog.Error("send message error:", err)
+				}
+
+				err = MarkMessageAsRead(conf, msg.Envelope.Source, msg.Envelope.Timestamp) //TODO: this doesn't has any effect (
+				if err != nil {
+					Rlog.Error("mark message as read error:", err)
+				}
+
+				err = SendMessageReaction(conf, rec.ReactionMark, msg.Envelope.Source, msg.Envelope.Source, msg.Envelope.Timestamp)
+				if err != nil {
+					Rlog.Error("send message reaction error:", err)
+				}
+				break
 			}
 
 			if len(msg.Envelope.DataMessage.Attachments) > 0 {
 				for _, rep := range conf.Forwarding {
 					if !rep.IsEnabled {
-						log.Printf("record for group  %s is disabled, ignoring", rep.GroupId)
+						Rlog.Debugf("record for group  %s is disabled, ignoring", rep.GroupId)
 						continue
 					}
 
 					if strings.EqualFold(rep.GroupId, msg.Envelope.DataMessage.GroupInfo.GroupId) {
-						log.Printf("recv: %s", message)
-
+						Rlog.Debugf("recv: %s", message)
 					} else {
-						log.Printf("rep.GroupId %s != msg.Envelope.DataMessage.GroupInfo.GroupId %s", rep.GroupId, msg.Envelope.DataMessage.GroupInfo.GroupId)
+						Rlog.Debugf("rep.GroupId %s != msg.Envelope.DataMessage.GroupInfo.GroupId %s", rep.GroupId, msg.Envelope.DataMessage.GroupInfo.GroupId)
 					}
 				}
 			}
@@ -229,14 +263,14 @@ func CheckFilters(conf *Config, cg *ConfigGroup, env *SignalEnvelope, isFilterMe
 
 	if len(cg.SenderNames) > 0 {
 		if !findFn(env.SourceName, cg.SenderNames) {
-			log.Printf("Sender name %s is not in Sender Names list config, ignoring message", env.SourceName)
+			Rlog.Debugf("Sender name %s is not in Sender Names list config, ignoring message", env.SourceName)
 			return "", nil //nothing to do
 		}
 	}
 
 	if len(cg.SenderUUIDs) > 0 {
 		if !findFn(env.SourceUuid, cg.SenderUUIDs) {
-			log.Printf("Sender UUID %s is not in Sender UUIDs list config, ignoring message", env.SourceUuid)
+			Rlog.Debugf("Sender UUID %s is not in Sender UUIDs list config, ignoring message", env.SourceUuid)
 			return "", nil //nothing to do
 		}
 	}
@@ -257,7 +291,24 @@ func CheckFilters(conf *Config, cg *ConfigGroup, env *SignalEnvelope, isFilterMe
 
 	if len(cg.StartsWith) > 0 {
 		if !findStartWithFn(env.DataMessage.Message, cg.StartsWith) {
-			log.Printf("Message %s is not in starts with list config, ignoring message", env.DataMessage.Message)
+			Rlog.Debugf("Message %s is not in starts with list config, ignoring message", env.DataMessage.Message)
+			return "", nil //nothing to do
+		}
+	}
+
+	findContainsFn := func(Msg string, Masks []string) bool {
+		for _, m := range Masks {
+			if strings.Contains(Msg, m) {
+				return true
+			}
+		}
+
+		return false
+	}
+
+	if len(cg.Contains) > 0 {
+		if !findContainsFn(env.DataMessage.Message, cg.Contains) {
+			Rlog.Debugf("Message %s is not contains list config, ignoring message", env.DataMessage.Message)
 			return "", nil //nothing to do
 		}
 	}
@@ -268,7 +319,7 @@ func CheckFilters(conf *Config, cg *ConfigGroup, env *SignalEnvelope, isFilterMe
 func GetForwardingRecord(conf *Config, groupId string) (*ConfigGroup, error) {
 	for _, rep := range conf.Forwarding {
 		if !rep.IsEnabled {
-			log.Printf("record for group %s is disabled, ignoring", rep.GroupId)
+			Rlog.Debugf("record for group %s is disabled, ignoring", rep.GroupId)
 			continue
 		}
 
@@ -285,7 +336,7 @@ func SendMessage(conf *Config, recGroupIds []string, attachments []SignalAttachm
 		return errors.New("config is nil")
 	}
 	if !conf.IsSendingEnabled {
-		log.Println("sending messages disabled")
+		Rlog.Infof("sending messages disabled")
 		return nil
 	}
 	if len(attachments) == 0 && len(msgText) == 0 {
@@ -312,7 +363,7 @@ func SendMessage(conf *Config, recGroupIds []string, attachments []SignalAttachm
 	for i, attachment := range attachments {
 		response, err := http.Get(fmt.Sprintf("http://%s/v1/attachments/%s", conf.CLIAddress, attachment.Id))
 		if err != nil {
-			log.Println("attachment error: ", err.Error())
+			Rlog.Error("attachment error: ", err.Error())
 			return err
 		}
 		pr, pw := io.Pipe()
@@ -329,7 +380,7 @@ func SendMessage(conf *Config, recGroupIds []string, attachments []SignalAttachm
 		}()
 		out, err := io.ReadAll(pr)
 		if err != nil {
-			log.Println("read error: ", err.Error())
+			Rlog.Error("read error: ", err.Error())
 			return err
 		}
 
@@ -338,7 +389,7 @@ func SendMessage(conf *Config, recGroupIds []string, attachments []SignalAttachm
 
 	resp, err := json.Marshal(msg)
 	if err != nil {
-		log.Println("json marshal err: ", err)
+		Rlog.Error("json marshal err: ", err)
 		return err
 	}
 
@@ -346,27 +397,27 @@ func SendMessage(conf *Config, recGroupIds []string, attachments []SignalAttachm
 
 	r, err := http.NewRequest("POST", fmt.Sprintf("http://%s/v2/send", conf.CLIAddress), bytes.NewBuffer(resp))
 	if err != nil {
-		log.Println("new request err: ", err)
+		Rlog.Error("new request err: ", err)
 		return err
 	}
 
 	r.Header.Add("Content-Type", "application/json")
-	log.Printf("SENDING MESSAGE TO %s", strings.Join(recGroupIds, ","))
+	Rlog.Infof("SENDING MESSAGE TO %s", strings.Join(recGroupIds, ","))
 	client := &http.Client{}
 	res, err := client.Do(r)
 	defer res.Body.Close()
 	if err != nil {
-		log.Println("client send request error: ", err)
+		Rlog.Error("client send request error: ", err)
 		return err
 	}
 	response := make(map[string]interface{})
 	err = json.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
-		log.Println("client send request resp decode error: ", err)
+		Rlog.Error("client send request resp decode error: ", err)
 		return err
 	}
 
-	log.Println("Message sent: ", response)
+	Rlog.Info("Message sent: ", response)
 
 	return nil
 }
@@ -380,21 +431,21 @@ func MarkMessageAsRead(conf *Config, recipient string, timestamp uint64) error {
 
 	resp, err := json.Marshal(request)
 	if err != nil {
-		log.Println("json marshal err: ", err)
+		Rlog.Error("json marshal err: ", err)
 		return err
 	}
 	r, err := http.NewRequest("POST", fmt.Sprintf("http://%s/v1/receipts/%s", conf.CLIAddress, conf.SelfNumber), bytes.NewBuffer(resp))
 	if err != nil {
-		log.Println("new request err: ", err)
+		Rlog.Error("new request err: ", err)
 		return err
 	}
 	r.Header.Add("Content-Type", "application/json")
-	log.Printf("MARKING MESSAGE %d AS READ", timestamp)
+	Rlog.Infof("MARKING MESSAGE %d AS READ", timestamp)
 	client := &http.Client{}
 	res, err := client.Do(r)
 	defer res.Body.Close()
 	if err != nil {
-		log.Println("client send request error: ", err)
+		Rlog.Error("client send request error: ", err)
 		return err
 	}
 	if res.StatusCode != http.StatusNoContent {
@@ -416,21 +467,21 @@ func SendMessageReaction(conf *Config, reactionMark string, recipient string, ta
 
 	resp, err := json.Marshal(request)
 	if err != nil {
-		log.Println("json marshal err: ", err)
+		Rlog.Error("json marshal err: ", err)
 		return err
 	}
 	r, err := http.NewRequest("POST", fmt.Sprintf("http://%s/v1/reactions/%s", conf.CLIAddress, conf.SelfNumber), bytes.NewBuffer(resp))
 	if err != nil {
-		log.Println("new request err: ", err)
+		Rlog.Error("new request err: ", err)
 		return err
 	}
 	r.Header.Add("Content-Type", "application/json")
-	log.Printf("MARKING MESSAGE %d AS READ", timestamp)
+	Rlog.Infof("MARKING MESSAGE %d AS READ", timestamp)
 	client := &http.Client{}
 	res, err := client.Do(r)
 	defer res.Body.Close()
 	if err != nil {
-		log.Println("client send request error: ", err)
+		Rlog.Error("client send request error: ", err)
 		return err
 	}
 	if res.StatusCode != http.StatusNoContent {
@@ -442,14 +493,14 @@ func SendMessageReaction(conf *Config, reactionMark string, recipient string, ta
 func GetGroupsList(conf *Config) ([]SignalGroupEntry, error) {
 	response, err := http.Get(fmt.Sprintf("http://%s/v1/groups/%s", conf.CLIAddress, conf.SelfNumber))
 	if err != nil {
-		log.Println("groups list error: ", err.Error())
+		Rlog.Error("groups list error: ", err.Error())
 		return nil, err
 	}
 
 	body, err := io.ReadAll(response.Body)
 
 	if err != nil {
-		log.Println("groups io read all error: ", err.Error())
+		Rlog.Error("groups io read all error: ", err.Error())
 		return nil, err
 	}
 
@@ -457,7 +508,7 @@ func GetGroupsList(conf *Config) ([]SignalGroupEntry, error) {
 		resp := make(map[string]string)
 		err = json.Unmarshal(body, &resp)
 		if err != nil {
-			log.Println("err response json unmarshal error: ", err.Error())
+			Rlog.Error("err response json unmarshal error: ", err.Error())
 			return nil, err
 		}
 		e := ""
@@ -471,7 +522,7 @@ func GetGroupsList(conf *Config) ([]SignalGroupEntry, error) {
 	var groups []SignalGroupEntry
 	err = json.Unmarshal(body, &groups)
 	if err != nil {
-		log.Println("groups json unmarshal error: ", err.Error())
+		Rlog.Error("groups json unmarshal error: ", err.Error())
 		return nil, err
 	}
 

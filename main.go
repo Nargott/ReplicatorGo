@@ -11,7 +11,7 @@ func main() {
 	flag.Parse()
 	log.SetFlags(0)
 
-	log.Printf("loading config from %s", *configPath)
+	Rlog.Infof("loading config from %s", *configPath)
 	conf, err := LoadConfig(*configPath)
 	if err != nil {
 		log.Fatal(err)
@@ -23,6 +23,6 @@ func main() {
 
 	err = initWebsocketClient(conf)
 	if err != nil {
-		log.Fatal("initWebsocketClient error: ", err)
+		Rlog.Fatal("initWebsocketClient error: ", err)
 	}
 }
