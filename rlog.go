@@ -28,7 +28,7 @@ func (l *RLog) Debugf(format string, v ...any) {
 		return
 	}
 	log.SetOutput(os.Stdout)
-	log.Printf(format, v)
+	log.Printf(format, v...)
 }
 
 func (l *RLog) Info(v ...any) {
@@ -38,7 +38,7 @@ func (l *RLog) Info(v ...any) {
 
 func (l *RLog) Infof(format string, v ...any) {
 	log.SetOutput(os.Stdout)
-	log.Printf(format, v)
+	log.Printf(format, v...)
 }
 
 func (l *RLog) Error(v ...any) {
@@ -48,7 +48,7 @@ func (l *RLog) Error(v ...any) {
 
 func (l *RLog) Errorf(format string, v ...any) {
 	log.SetOutput(os.Stderr)
-	log.Printf(format, v)
+	log.Printf(format, v...)
 }
 
 func (l *RLog) Fatal(v ...any) {
@@ -58,5 +58,5 @@ func (l *RLog) Fatal(v ...any) {
 
 func (l *RLog) Fatalf(format string, v ...any) {
 	log.SetOutput(os.Stderr)
-	log.Fatalf(format, v)
+	log.Fatalf(format, v...)
 }

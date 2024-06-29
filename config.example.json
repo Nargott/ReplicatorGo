@@ -5,6 +5,7 @@
   "ignore_older_messages": 240000,
   "is_sending_enabled": true,
   "is_print_messages": true,
+  "enable_debug_messages": false,
   "forwarding": [
     {
       "group_id": "Z3JvdXAwX2dyb3VwMF9ncm91cDBfZ3JvdXAwX19fXw==",
@@ -32,6 +33,9 @@
         "\uD83D\uDD34Hello",
         "\uD83D\uDD34 HELLO",
         "\uD83D\uDD34HELLO"
+      ],
+      "contains": [
+        "sun"
       ]
     }
   ]

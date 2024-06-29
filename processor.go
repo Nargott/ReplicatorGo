@@ -292,7 +292,9 @@ func CheckFilters(conf *Config, cg *ConfigGroup, env *SignalEnvelope, isFilterMe
 	if len(cg.StartsWith) > 0 {
 		if !findStartWithFn(env.DataMessage.Message, cg.StartsWith) {
 			Rlog.Debugf("Message %s is not in starts with list config, ignoring message", env.DataMessage.Message)
-			return "", nil //nothing to do
+			if len(cg.Contains) == 0 { // return here only if we don't have contains config
+				return "", nil //nothing to do
+			}
 		}
 	}
 
