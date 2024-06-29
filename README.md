@@ -21,12 +21,12 @@ File config.json should be located inside the source root directory to be export
  >`is_enabled` -- this flag is for disable/enable processing this particular forwarding group  
  >`forwarding_mode` -- can be "__attachments__"/"__messages__"/"__all__" which content we should forward  
  >`receivers_group_ids` -- which groups list will receive forwarded message  
- >`bot_special_addon_msg` -- is applied only in "__attachments__" mode, means which message bot will add to the attachments
- >`reaction_mark` -- which reaction (should be a smile utf-8 like ➕)
- >`sender_names` -- forward messages only from given senders names (not recommend to use)
- >`sender_uuids` -- forward messages only from given senders uuids (recommended to use)
- >`starts_with` -- forward messages only that starts with given string
- >`contains` -- forward messages only that contains given string
+ >`bot_special_addon_msg` -- is applied only in "__attachments__" mode, means which message bot will add to the attachments  
+ >`reaction_mark` -- which reaction (should be a smile utf-8 like ➕)  
+ >`sender_names` -- forward messages only from given senders names (not recommend to use)  
+ >`sender_uuids` -- forward messages only from given senders uuids (recommended to use)  
+ >`starts_with` -- forward messages only that starts with given string  
+ >`contains` -- forward messages only that contains given string  
 
 ### Config example:
 ```json
