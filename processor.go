@@ -478,7 +478,7 @@ func SendMessageReaction(conf *Config, reactionMark string, recipient string, ta
 		return err
 	}
 	r.Header.Add("Content-Type", "application/json")
-	Rlog.Infof("MARKING MESSAGE %d AS READ", timestamp)
+	Rlog.Infof("MARKING MESSAGE %d WITH REACTION %s", timestamp, reactionMark)
 	client := &http.Client{}
 	res, err := client.Do(r)
 	defer res.Body.Close()
