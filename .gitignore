@@ -1,3 +1,4 @@
-/config.json
+!/config.example.json
 /.idea
 /*.exe
+/*.json
