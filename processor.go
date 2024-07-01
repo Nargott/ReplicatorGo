@@ -295,6 +295,8 @@ func CheckFilters(conf *Config, cg *ConfigGroup, env *SignalEnvelope, isFilterMe
 			if len(cg.Contains) == 0 { // return here only if we don't have contains config
 				return "", nil //nothing to do
 			}
+		} else {
+			return env.DataMessage.Message, nil
 		}
 	}
 
